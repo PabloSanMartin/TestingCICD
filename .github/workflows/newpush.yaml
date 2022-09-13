@@ -3,15 +3,42 @@ name: New Push
 on:
   push:
     branches:
-      - dev
+      [ dev ]
+  workflow_dispatch:
 
 jobs:
   build:
     name: Push
-        uses: s0/git-publish-subdir-action@develop
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@dev
+      - name: Install dependencies
+        run: npm ci
+      - name: Build dependencies
+        run: npm run build
+      - name: Archive production artifact
+        uses: actions/upload-artifact@dev
+        with:
+          name: dist
+          path: dist
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@dev
+      - name: Download artifact
+        uses: actions/download-artifact@dev
+        with:
+          name: dist
+          path: dist
+      - name: Deplot to Firebase
+        uses: w9jds/firebase-actions@dev
+        with:
+          args: deploy --only hosting
         env:
-          REPO: self
-          BRANCH: func # The branch name where you want to push the assets
-          FOLDER: func # The directory where your assets are generated
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub will automatically add this - you don't need to bother getting a token
-          MESSAGE: "Build: ({sha}) {msg}" # The commit message
+          FIREBASE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+
